@@ -1,0 +1,3 @@
+numerapi===2.15.1
+polars===0.19.2
+python-dotenv===1.0.0

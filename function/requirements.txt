@@ -1,0 +1,2 @@
+functions-framework==3.*
+google-cloud-batch==0.17.0
