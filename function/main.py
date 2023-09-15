@@ -5,7 +5,7 @@ from datetime import datetime
 IMAGE_URI = "YOUR_DOCKER_IMAGE_URI"
 PROJECT_ID = "YOUR_PROJECT_ID"
 REGION = "YOUR_REGION"
-JOB_NAME = "YOUR_JOB_NAME"
+JOB_NAME = "YOUR_JOB_NAME"  # ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
 
 
 @functions_framework.http
@@ -18,20 +18,23 @@ def numerai_webhook(request):
     task = batch_v1.TaskSpec()
     task.runnables = [runnable]
 
+    environment = batch_v1.Environment()
+    environment.variables = {}  # Add environment variables here
+
     resources = batch_v1.ComputeResource()
-    resources.cpu_milli = 1000  # 1 vCPU
-    resources.memory_mib = 1024  # 1 GiB
+    resources.cpu_milli = 8000  # 8 vCPU
+    resources.memory_mib = 65536  # 64 GB
     task.compute_resource = resources
 
-    task.max_retry_count = 2
-    task.max_run_duration = "3600s"
+    task.max_retry_count = 0
+    task.max_run_duration = "3600s"  # Daily Submission Limit
 
     group = batch_v1.TaskGroup()
     group.task_count = 1
     group.task_spec = task
 
     policy = batch_v1.AllocationPolicy.InstancePolicy()
-    policy.machine_type = "e2-standard-4"
+    policy.machine_type = "c3-highmem-8"
     instances = batch_v1.AllocationPolicy.InstancePolicyOrTemplate()
     instances.policy = policy
     allocation_policy = batch_v1.AllocationPolicy()
