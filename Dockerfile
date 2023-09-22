@@ -10,7 +10,7 @@ ENV GIT_COMMIT_HASH=$GIT_COMMIT
 WORKDIR /model
 
 COPY .env .env
-COPY ./model /model
+COPY ./models/${NUMERAI_MODEL_ID} /model
 
 RUN apt update \
  && apt install -y --no-install-recommends libgomp1 \
