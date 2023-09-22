@@ -4,10 +4,10 @@ import numerapi
 from dotenv import load_dotenv
 import pandas as pd
 import json
-import lightgbm as lgb
 import gc
 from logging import getLogger
 import psutil
+import xgboost as xgb
 
 logger = getLogger(__name__)
 
@@ -29,9 +29,15 @@ def memory_log_message():
     return f"Memory used: {used} / {total}"
 
 
-def memory_callback(env):
-    if env.iteration % 100 == 0 or env.iteration == env.end_iteration - 1:
-        logger.info(f"Iteration: {env.iteration}, {memory_log_message()}")
+class MemoryLoggingCallback(xgb.callback.TrainingCallback):
+    def memory_log_message(self):
+        used = f"{psutil.virtual_memory().used / (1024 ** 2):.2f} MB"
+        total = f"{psutil.virtual_memory().total / (1024 ** 2):.2f} MB"
+        return f"Memory used: {used} / {total}"
+
+    def after_iteration(self, model, epoch, evals_log):
+        if epoch % 100 == 0:
+            logger.info(f"Iteration: {epoch}, {self.memory_log_message()}")
 
 
 post_discord(f"Start: {NUMERAI_MODEL_ID}")
@@ -58,10 +64,10 @@ try:
     logger.info(f"Loaded {len(train)} rows of training data")
     logger.info(memory_log_message())
 
-    dtrain = lgb.Dataset(train[features], label=train["target"])
+    dtrain = xgb.DMatrix(train[features], label=train["target"])
     del train
     gc.collect()
-    logger.info("Create LGBM Dataset")
+    logger.info("Create Xgboost Dataset")
     logger.info(memory_log_message())
 
     # Validation data
@@ -73,41 +79,40 @@ try:
     logger.info(f"Loaded {len(validation)} rows of validation data")
     logger.info(memory_log_message())
 
-    dvalid = lgb.Dataset(validation[features], label=validation["target"])
+    dvalid = xgb.DMatrix(validation[features], label=validation["target"])
     del validation
     gc.collect()
-    logger.info("Create LGBM Dataset")
+    logger.info("Create Xgboost Dataset")
     logger.info(memory_log_message())
 
     # Train model
     logger.info("Start training")
     params = {
-        "objective": "regression",
-        "boosting_type": "gbdt",
-        "metric": "l2",
-        "learning_rate": 0.004,
-        "max_depth": 6,
-        "num_leaves": 2**6 - 1,
-        "colsample_bytree": 0.1,
-        "random_state": 46,  # sexy random seed
-        "force_col_wise": True,
+        "objective": "reg:squarederror",
+        "learning_rate": 0.02,
+        "max_depth": 5,
+        "subsample": 1.0 / 16,
+        "colsample_bytree": (2**5) / len(features),  # features needs to be defined
+        "eval_metric": "rmse",
+        "seed": 46,  # sexy random seed
     }
-    model = lgb.train(
+    evals = [(dvalid, "eval")]
+    model = xgb.train(
         params,
         dtrain,
-        valid_sets=[dvalid],
-        num_boost_round=3000,
-        callbacks=[
-            lgb.early_stopping(stopping_rounds=100, verbose=True),
-            memory_callback,
-        ],
+        num_boost_round=1000,
+        evals=evals,
+        early_stopping_rounds=100,
+        verbose_eval=200,
+        callbacks=[MemoryLoggingCallback()],
     )
     logger.info("end training")
     logger.info(memory_log_message())
 
     # Predict
     live_features = pd.read_parquet("v4.2/live_int8.parquet", columns=features)
-    live_predictions = model.predict(live_features[features])
+    dlive = xgb.DMatrix(live_features[features])
+    live_predictions = model.predict(dlive)
 
     # Submit
     submission = pd.Series(live_predictions, index=live_features.index).rank(pct=True)

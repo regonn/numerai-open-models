@@ -72,6 +72,7 @@ try:
     validation = validation[validation["data_type"] == "validation"]
     logger.info(f"Loaded {len(validation)} rows of validation data")
     logger.info(memory_log_message())
+
     dvalid = lgb.Dataset(validation[features], label=validation["target"])
     del validation
     gc.collect()
