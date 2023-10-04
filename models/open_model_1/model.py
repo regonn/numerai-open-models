@@ -85,7 +85,7 @@ try:
         "objective": "regression",
         "boosting_type": "gbdt",
         "metric": "l2",
-        "learning_rate": 0.004,
+        "learning_rate": 0.005,
         "max_depth": 6,
         "num_leaves": 2**6 - 1,
         "colsample_bytree": 0.1,
