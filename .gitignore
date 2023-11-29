@@ -1,3 +1,5 @@
 .env
 build_and_push.ps1
 build_and_push.sh
+/v4.2
+*.pkl

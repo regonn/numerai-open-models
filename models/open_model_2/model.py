@@ -8,6 +8,8 @@ import lightgbm as lgb
 import gc
 from logging import getLogger
 import psutil
+import numpy as np
+
 
 logger = getLogger(__name__)
 
@@ -32,6 +34,22 @@ def memory_log_message():
 def memory_callback(env):
     if env.iteration % 100 == 0 or env.iteration == env.end_iteration - 1:
         logger.info(f"Iteration: {env.iteration}, {memory_log_message()}")
+
+
+def neutralize(df, target="prediction", by=None, proportion=1.0):
+    if by is None:
+        by = [x for x in df.columns if x.startswith("feature")]
+
+    scores = df[target]
+    exposures = df[by].values
+
+    # constant column to make sure the series is completely neutral to exposures
+    exposures = np.hstack(
+        (exposures, np.array([np.mean(scores)] * len(exposures)).reshape(-1, 1))
+    )
+
+    scores -= proportion * (exposures @ (np.linalg.pinv(exposures) @ scores.values))
+    return scores / scores.std()
 
 
 post_discord(f"Start: {NUMERAI_MODEL_ID}")
@@ -107,10 +125,16 @@ try:
 
     # Predict
     live_features = pd.read_parquet("v4.2/live_int8.parquet", columns=features)
-    live_predictions = model.predict(live_features[features])
+    live_predictions = model.predict(
+        live_features[features], num_iteration=model.best_iteration
+    )
+    live_features["prediction"] = live_predictions
+
+    submission = neutralize(
+        live_features, target="prediction", by=None, proportion=1.0
+    ).rank(pct=True)
 
     # Submit
-    submission = pd.Series(live_predictions, index=live_features.index).rank(pct=True)
     submission.to_frame("prediction").to_csv(predict_csv_file_name, index=True)
     model_id = napi.get_models()[NUMERAI_MODEL_ID]
     napi.upload_predictions(predict_csv_file_name, model_id=model_id)

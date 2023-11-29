@@ -9,3 +9,4 @@
 ## Change Log
 
 - 2023-09-21: First Release
+- 2023-11-22: Feature Neutralization
