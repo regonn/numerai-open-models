@@ -108,21 +108,21 @@ try:
     blob = bucket.blob("open_model_4_study.pkl")
 
     # Download data
-    napi.download_dataset("v4.2/train_int8.parquet")
-    napi.download_dataset("v4.2/validation_int8.parquet")
-    napi.download_dataset("v4.2/live_int8.parquet")
-    napi.download_dataset("v4.2/features.json")
+    napi.download_dataset("v4.3/train_int8.parquet")
+    napi.download_dataset("v4.3/validation_int8.parquet")
+    napi.download_dataset("v4.3/live_int8.parquet")
+    napi.download_dataset("v4.3/features.json")
     predict_csv_file_name = f"tournament_predictions_{NUMERAI_MODEL_ID}.csv"
 
     # Load data
-    feature_metadata = json.load(open("v4.2/features.json"))
+    feature_metadata = json.load(open("v4.3/features.json"))
     features = feature_metadata["feature_sets"]["medium"]
     logger.info(f"Using {len(features)} features")
     logger.info(memory_log_message())
 
     # Train data
     train = pd.read_parquet(
-        "v4.2/train_int8.parquet", columns=["era"] + features + ["target"]
+        "v4.3/train_int8.parquet", columns=["era"] + features + ["target"]
     )
     logger.info(f"Loaded {len(train)} rows of training data")
     logger.info(memory_log_message())
@@ -135,7 +135,7 @@ try:
 
     # Validation data
     validation = pd.read_parquet(
-        "v4.2/validation_int8.parquet",
+        "v4.3/validation_int8.parquet",
         columns=["era", "data_type"] + features + ["target"],
     )
     validation = validation[validation["data_type"] == "validation"]
@@ -183,7 +183,7 @@ try:
     logger.info(memory_log_message())
 
     # Predict
-    live_features = pd.read_parquet("v4.2/live_int8.parquet", columns=features)
+    live_features = pd.read_parquet("v4.3/live_int8.parquet", columns=features)
     live_predictions = model.predict(
         live_features[features], num_iteration=model.best_iteration
     )
