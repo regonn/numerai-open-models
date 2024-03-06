@@ -96,15 +96,22 @@ try:
         "eval_metric": "rmse",
         "seed": 46,  # sexy random seed
     }
-    evals = [(dvalid, "eval")]
+
+    early_stop = xgb.callback.EarlyStopping(
+        rounds=100,
+        save_best=True,
+        maximize=False,
+        metric_name="rmse",
+        data_name="eval",
+    )
+
     model = xgb.train(
         params,
         dtrain,
         num_boost_round=1000,
-        evals=evals,
-        early_stopping_rounds=100,
-        verbose_eval=200,
-        callbacks=[MemoryLoggingCallback()],
+        evals=[(dvalid, "eval")],
+        verbose_eval=False,
+        callbacks=[early_stop, MemoryLoggingCallback()],
     )
     logger.info("end training")
     logger.info(memory_log_message())
@@ -112,7 +119,9 @@ try:
     # Predict
     live_features = pd.read_parquet("v4.2/live_int8.parquet", columns=features)
     dlive = xgb.DMatrix(live_features[features])
-    live_predictions = model.predict(dlive)
+    live_predictions = model.predict(
+        dlive, iteration_range=(0, model.best_iteration + 1)
+    )
 
     # Submit
     submission = pd.Series(live_predictions, index=live_features.index).rank(pct=True)
