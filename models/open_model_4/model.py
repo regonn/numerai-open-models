@@ -159,7 +159,7 @@ try:
         study = optuna.create_study(direction="maximize")
         logger.info("New study created.")
 
-    study.optimize(objective, n_trials=5, callbacks=[optuna_callback])
+    study.optimize(objective, n_trials=3, callbacks=[optuna_callback])
 
     study_data = pickle.dumps(study)
     blob.upload_from_string(study_data)
@@ -184,7 +184,9 @@ try:
 
     # Predict
     live_features = pd.read_parquet("v4.2/live_int8.parquet", columns=features)
-    live_predictions = model.predict(live_features[features])
+    live_predictions = model.predict(
+        live_features[features], num_iteration=model.best_iteration
+    )
 
     # Submit
     submission = pd.Series(live_predictions, index=live_features.index).rank(pct=True)
