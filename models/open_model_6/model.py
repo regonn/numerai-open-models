@@ -260,7 +260,7 @@ train = train.dropna(subset=target, axis=0)
 
 # Validation data
 # validation = pd.read_parquet(
-#     "v4.2/validation_int8.parquet",
+#     "v4.3/validation_int8.parquet",
 #     columns=["era", "data_type"] + features + targets,
 # )
 # validation = validation[validation["data_type"] == "validation"]
