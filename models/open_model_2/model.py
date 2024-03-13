@@ -71,7 +71,7 @@ try:
 
     # Train data
     train = pd.read_parquet(
-        "v4.2/train_int8.parquet", columns=["era"] + features + ["target"]
+        "v4.3/train_int8.parquet", columns=["era"] + features + ["target"]
     )
     logger.info(f"Loaded {len(train)} rows of training data")
     logger.info(memory_log_message())
