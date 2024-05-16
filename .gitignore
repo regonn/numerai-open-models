@@ -4,4 +4,6 @@ build_and_push_signals.ps1
 build_and_push.sh
 kaggle.json
 /v4.3
+/saved_models/*
 *.pkl
+/.pt_tmp
