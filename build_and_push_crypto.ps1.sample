@@ -4,5 +4,5 @@ $PROJECT_ID = "YOUR_GCP_PROJECT_ID"
 $ARTIFACT_REGISTRY_REPOSITORY = "YOUR_ARTIFACT_REGISTRY_REPOSITORY_NAME"
 $MODEL_ID = "YOUR_MODEL_ID"
 
-docker build --build-arg GIT_COMMIT=$GIT_COMMIT --build-arg NUMERAI_MODEL_ID=${MODEL_ID} -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REGISTRY_REPOSITORY}/${MODEL_ID}:latest -f Dockerfile.signals .
+docker build --build-arg GIT_COMMIT=$GIT_COMMIT --build-arg NUMERAI_MODEL_ID=${MODEL_ID} -t ${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REGISTRY_REPOSITORY}/${MODEL_ID}:latest -f Dockerfile.crypto .
 docker push ${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REGISTRY_REPOSITORY}/${MODEL_ID}:latest
