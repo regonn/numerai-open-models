@@ -1,15 +1,15 @@
-import requests
-import os
-import numerapi
-from dotenv import load_dotenv
-import pandas as pd
-import json
-import lightgbm as lgb
 import gc
+import json
+import os
 from logging import getLogger
-import psutil
-import numpy as np
 
+import lightgbm as lgb
+import numerapi
+import numpy as np
+import pandas as pd
+import psutil
+import requests
+from dotenv import load_dotenv
 
 logger = getLogger(__name__)
 
@@ -44,9 +44,7 @@ def neutralize(df, target="prediction", by=None, proportion=1.0):
     exposures = df[by].values
 
     # constant column to make sure the series is completely neutral to exposures
-    exposures = np.hstack(
-        (exposures, np.array([np.mean(scores)] * len(exposures)).reshape(-1, 1))
-    )
+    exposures = np.hstack((exposures, np.array([np.mean(scores)] * len(exposures)).reshape(-1, 1)))
 
     scores -= proportion * (exposures @ (np.linalg.pinv(exposures) @ scores.values))
     return scores / scores.std()
@@ -57,22 +55,20 @@ try:
     napi = numerapi.NumerAPI(NUMERAI_PUBLIC_ID, NUMERAI_SECRET_KEY)
 
     # Download data
-    napi.download_dataset("v4.3/train_int8.parquet")
-    napi.download_dataset("v4.3/validation_int8.parquet")
-    napi.download_dataset("v4.3/live_int8.parquet")
-    napi.download_dataset("v4.3/features.json")
+    napi.download_dataset("v5.0/train.parquet")
+    napi.download_dataset("v5.0/validation.parquet")
+    napi.download_dataset("v5.0/live.parquet")
+    napi.download_dataset("v5.0/features.json")
     predict_csv_file_name = f"tournament_predictions_{NUMERAI_MODEL_ID}.csv"
 
     # Load data
-    feature_metadata = json.load(open("v4.3/features.json"))
+    feature_metadata = json.load(open("v5.0/features.json"))
     features = feature_metadata["feature_sets"]["medium"]
     logger.info(f"Using {len(features)} features")
     logger.info(memory_log_message())
 
     # Train data
-    train = pd.read_parquet(
-        "v4.3/train_int8.parquet", columns=["era"] + features + ["target"]
-    )
+    train = pd.read_parquet("v5.0/train.parquet", columns=["era"] + features + ["target"])
     logger.info(f"Loaded {len(train)} rows of training data")
     logger.info(memory_log_message())
 
@@ -84,7 +80,7 @@ try:
 
     # Validation data
     validation = pd.read_parquet(
-        "v4.3/validation_int8.parquet",
+        "v5.0/validation.parquet",
         columns=["era", "data_type"] + features + ["target"],
     )
     validation = validation[validation["data_type"] == "validation"]
@@ -124,15 +120,11 @@ try:
     logger.info(memory_log_message())
 
     # Predict
-    live_features = pd.read_parquet("v4.3/live_int8.parquet", columns=features)
-    live_predictions = model.predict(
-        live_features[features], num_iteration=model.best_iteration
-    )
+    live_features = pd.read_parquet("v5.0/live.parquet", columns=features)
+    live_predictions = model.predict(live_features[features], num_iteration=model.best_iteration)
     live_features["prediction"] = live_predictions
 
-    submission = neutralize(
-        live_features, target="prediction", by=None, proportion=1.0
-    ).rank(pct=True)
+    submission = neutralize(live_features, target="prediction", by=None, proportion=1.0).rank(pct=True)
 
     # Submit
     submission.to_frame("prediction").to_csv(predict_csv_file_name, index=True)
