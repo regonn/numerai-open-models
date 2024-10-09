@@ -1,12 +1,12 @@
-import requests
-import os
-import numerapi
-from dotenv import load_dotenv
-import pandas as pd
 import json
-import gc
+import os
 from logging import getLogger
+
+import numerapi
+import pandas as pd
 import psutil
+import requests
+from dotenv import load_dotenv
 from pytorch_tabular import TabularModel
 from pytorch_tabular.config import (
     DataConfig,
@@ -43,14 +43,14 @@ try:
     napi = numerapi.NumerAPI(NUMERAI_PUBLIC_ID, NUMERAI_SECRET_KEY)
 
     # Download data
-    napi.download_dataset("v4.3/train_int8.parquet")
-    napi.download_dataset("v4.3/validation_int8.parquet")
-    napi.download_dataset("v4.3/live_int8.parquet")
-    napi.download_dataset("v4.3/features.json")
+    napi.download_dataset("v5.0/train.parquet")
+    napi.download_dataset("v5.0/validation.parquet")
+    napi.download_dataset("v5.0/live.parquet")
+    napi.download_dataset("v5.0/features.json")
     predict_csv_file_name = f"tournament_predictions_{NUMERAI_MODEL_ID}.csv"
 
     # Load data
-    feature_metadata = json.load(open("v4.3/features.json"))
+    feature_metadata = json.load(open("v5.0/features.json"))
     features = feature_metadata["feature_sets"]["small"]
     targets = ["target"]
     logger.info(f"Using {len(features)} features")
@@ -92,16 +92,14 @@ try:
     )
 
     # Train data
-    train = pd.read_parquet(
-        "v4.3/train_int8.parquet", columns=["era"] + features + targets
-    )
+    train = pd.read_parquet("v5.0/train.parquet", columns=["era"] + features + targets)
     train = train.dropna(subset=targets, axis=0)
     logger.info(f"Loaded {len(train)} rows of training data")
     logger.info(memory_log_message())
 
     # Validation data
     validation = pd.read_parquet(
-        "v4.3/validation_int8.parquet",
+        "v5.0/validation.parquet",
         columns=["era", "data_type"] + features + targets,
     )
     validation = validation[validation["data_type"] == "validation"]
@@ -115,15 +113,11 @@ try:
     logger.info(memory_log_message())
 
     # Predict
-    live_features = pd.read_parquet("v4.3/live_int8.parquet", columns=features)
-    prediction = model.predict(live_features, include_input_features=False).rank(
-        pct=True
-    )
+    live_features = pd.read_parquet("v5.0/live.parquet", columns=features)
+    prediction = model.predict(live_features, include_input_features=False).rank(pct=True)
 
     # Submit
-    prediction.rename(columns={"target_prediction": "prediction"}).to_csv(
-        predict_csv_file_name, index=True
-    )
+    prediction.rename(columns={"target_prediction": "prediction"}).to_csv(predict_csv_file_name, index=True)
     model_id = napi.get_models()[NUMERAI_MODEL_ID]
     napi.upload_predictions(predict_csv_file_name, model_id=model_id)
 
