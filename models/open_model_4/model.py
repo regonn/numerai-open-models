@@ -1,20 +1,20 @@
-import requests
-import os
-import numerapi
-from dotenv import load_dotenv
-import pandas as pd
-import json
-import lightgbm as lgb
 import gc
-from logging import getLogger
-import psutil
-import numpy as np
-import scipy.stats
-import optuna
-from google.oauth2.service_account import Credentials
-from google.cloud import storage
+import json
+import os
 import pickle
+from logging import getLogger
 
+import lightgbm as lgb
+import numerapi
+import numpy as np
+import optuna
+import pandas as pd
+import psutil
+import requests
+import scipy.stats
+from dotenv import load_dotenv
+from google.cloud import storage
+from google.oauth2.service_account import Credentials
 
 logger = getLogger(__name__)
 
@@ -108,22 +108,20 @@ try:
     blob = bucket.blob("open_model_4_study.pkl")
 
     # Download data
-    napi.download_dataset("v4.3/train_int8.parquet")
-    napi.download_dataset("v4.3/validation_int8.parquet")
-    napi.download_dataset("v4.3/live_int8.parquet")
-    napi.download_dataset("v4.3/features.json")
+    napi.download_dataset("v5.0/train.parquet")
+    napi.download_dataset("v5.0/validation.parquet")
+    napi.download_dataset("v5.0/live.parquet")
+    napi.download_dataset("v5.0/features.json")
     predict_csv_file_name = f"tournament_predictions_{NUMERAI_MODEL_ID}.csv"
 
     # Load data
-    feature_metadata = json.load(open("v4.3/features.json"))
+    feature_metadata = json.load(open("v5.0/features.json"))
     features = feature_metadata["feature_sets"]["medium"]
     logger.info(f"Using {len(features)} features")
     logger.info(memory_log_message())
 
     # Train data
-    train = pd.read_parquet(
-        "v4.3/train_int8.parquet", columns=["era"] + features + ["target"]
-    )
+    train = pd.read_parquet("v5.0/train.parquet", columns=["era"] + features + ["target"])
     logger.info(f"Loaded {len(train)} rows of training data")
     logger.info(memory_log_message())
 
@@ -135,7 +133,7 @@ try:
 
     # Validation data
     validation = pd.read_parquet(
-        "v4.3/validation_int8.parquet",
+        "v5.0/validation.parquet",
         columns=["era", "data_type"] + features + ["target"],
     )
     validation = validation[validation["data_type"] == "validation"]
@@ -183,10 +181,8 @@ try:
     logger.info(memory_log_message())
 
     # Predict
-    live_features = pd.read_parquet("v4.3/live_int8.parquet", columns=features)
-    live_predictions = model.predict(
-        live_features[features], num_iteration=model.best_iteration
-    )
+    live_features = pd.read_parquet("v5.0/live.parquet", columns=features)
+    live_predictions = model.predict(live_features[features], num_iteration=model.best_iteration)
 
     # Submit
     submission = pd.Series(live_predictions, index=live_features.index).rank(pct=True)
