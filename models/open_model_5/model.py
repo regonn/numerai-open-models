@@ -1,13 +1,14 @@
-import requests
-import os
-import numerapi
-from dotenv import load_dotenv
-import pandas as pd
-import json
 import gc
+import json
+import os
 from logging import getLogger
+
+import numerapi
+import pandas as pd
 import psutil
+import requests
 import xgboost as xgb
+from dotenv import load_dotenv
 
 logger = getLogger(__name__)
 
@@ -45,23 +46,21 @@ try:
     napi = numerapi.NumerAPI(NUMERAI_PUBLIC_ID, NUMERAI_SECRET_KEY)
 
     # Download data
-    napi.download_dataset("v4.3/train_int8.parquet")
-    napi.download_dataset("v4.3/validation_int8.parquet")
-    napi.download_dataset("v4.3/live_int8.parquet")
-    napi.download_dataset("v4.3/features.json")
+    napi.download_dataset("v5.0/train.parquet")
+    napi.download_dataset("v5.0/validation.parquet")
+    napi.download_dataset("v5.0/live.parquet")
+    napi.download_dataset("v5.0/features.json")
     predict_csv_file_name = f"tournament_predictions_{NUMERAI_MODEL_ID}.csv"
 
     # Load data
-    feature_metadata = json.load(open("v4.3/features.json"))
+    feature_metadata = json.load(open("v5.0/features.json"))
     features = feature_metadata["feature_sets"]["small"]
-    targets = ["target_cyrus_v4_20", "target_cyrus_v4_60"]
+    targets = ["target_bravo_20", "target_bravo_60"]
     logger.info(f"Using {len(features)} features")
     logger.info(memory_log_message())
 
     # Train data
-    train = pd.read_parquet(
-        "v4.3/train_int8.parquet", columns=["era"] + features + targets
-    )
+    train = pd.read_parquet("v5.0/train.parquet", columns=["era"] + features + targets)
     train = train.dropna(subset=targets, axis=0)
     logger.info(f"Loaded {len(train)} rows of training data")
     logger.info(memory_log_message())
@@ -74,7 +73,7 @@ try:
 
     # Validation data
     validation = pd.read_parquet(
-        "v4.3/validation_int8.parquet",
+        "v5.0/validation.parquet",
         columns=["era", "data_type"] + features + targets,
     )
     validation = validation[validation["data_type"] == "validation"]
@@ -120,7 +119,7 @@ try:
     logger.info(memory_log_message())
 
     # Predict
-    live_features = pd.read_parquet("v4.3/live_int8.parquet", columns=features)
+    live_features = pd.read_parquet("v5.0/live.parquet", columns=features)
     dlive = xgb.DMatrix(live_features[features])
     # live_predictions = model.predict(
     #     dlive, iteration_range=(0, model.best_iteration + 1)
@@ -128,9 +127,7 @@ try:
     live_predictions = model.predict(dlive)
 
     # Submit
-    submission = pd.Series(live_predictions[:, 0], index=live_features.index).rank(
-        pct=True
-    )
+    submission = pd.Series(live_predictions[:, 0], index=live_features.index).rank(pct=True)
     submission.to_frame("prediction").to_csv(predict_csv_file_name, index=True)
     model_id = napi.get_models()[NUMERAI_MODEL_ID]
     napi.upload_predictions(predict_csv_file_name, model_id=model_id)
