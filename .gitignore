@@ -5,6 +5,7 @@ build_and_push_crypto.ps1
 build_and_push.sh
 kaggle.json
 /v4.3
+/v5.0
 /saved_models/*
 *.pkl
 /.pt_tmp
