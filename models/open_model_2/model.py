@@ -90,7 +90,6 @@ try:
     dvalid = lgb.Dataset(validation[features], label=validation["target"])
     del validation
     gc.collect()
-    logger.info("Create LGBM Dataset")
     logger.info(memory_log_message())
 
     # Train model
@@ -99,10 +98,11 @@ try:
         "objective": "regression",
         "boosting_type": "gbdt",
         "metric": "l2",
-        "learning_rate": 0.005,
-        "max_depth": 6,
-        "num_leaves": 2**6 - 1,
+        "learning_rate": 0.001,
+        "max_depth": 10,
+        "num_leaves": 2**10,
         "colsample_bytree": 0.1,
+        "min_date_in_leaf": 10000,
         "random_state": 46,  # sexy random seed
         "force_col_wise": True,
     }
@@ -110,9 +110,9 @@ try:
         params,
         dtrain,
         valid_sets=[dvalid],
-        num_boost_round=3000,
+        num_boost_round=30_000,
         callbacks=[
-            lgb.early_stopping(stopping_rounds=100, verbose=True),
+            lgb.early_stopping(stopping_rounds=500, verbose=True),
             memory_callback,
         ],
     )
