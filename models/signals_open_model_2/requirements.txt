@@ -1,0 +1,8 @@
+numerapi===2.19.1
+python-dotenv===1.0.1
+pandas===2.2.3
+pyarrow===19.0.0
+scikit-learn===1.6.1
+psutil===6.1.1
+kaggle===1.6.17
+pytorch_tabular===1.1.1
