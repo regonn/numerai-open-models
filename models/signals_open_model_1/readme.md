@@ -13,3 +13,4 @@
 ## Change Log
 
 - 2024-04-24: First Release
+- 2025-02-05: Data v2.0
