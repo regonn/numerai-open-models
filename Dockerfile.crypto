@@ -2,30 +2,17 @@ FROM python:3.11-slim
 
 WORKDIR /model
 
+RUN apt update \
+    && apt install -y --no-install-recommends libgomp1 curl build-essential libssl-dev libffi-dev python3-dev \
+    && apt -y clean \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY .env .env
+
 ARG NUMERAI_MODEL_ID
 RUN if [ -z ${NUMERAI_MODEL_ID} ]; then echo "NUMERAI_MODEL_ID is not set (docker build --build-arg NUMERAI_MODEL_ID=sample_model .)"; exit 1; fi
 COPY ./models/${NUMERAI_MODEL_ID} /model
-COPY yfinance_sector_industry.csv yfinance_sector_industry.csv
-
-COPY kaggle.json /tmp/kaggle.json
-RUN mkdir -p ~/.kaggle && \
-    mv /tmp/kaggle.json ~/.kaggle/kaggle.json && \
-    chmod 600 ~/.kaggle/kaggle.json
-
-RUN apt update \
- && apt install -y --no-install-recommends libgomp1 curl build-essential libssl-dev libffi-dev python3-dev \
- && apt -y clean \
- && rm -rf /var/lib/apt/lists/*
 
 RUN pip install -r requirements.txt
-RUN curl -L http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz -O \
-    && tar xzvf ta-lib-0.4.0-src.tar.gz \
-    && cd ta-lib \
-    && ./configure --prefix=/usr \
-    && make \
-    && make install \
-    && cd .. \
-    && pip install ta-lib
 
 CMD ["python", "model.py"]

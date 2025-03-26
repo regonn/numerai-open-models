@@ -9,3 +9,4 @@
 ## Change Log
 
 - 2024-09-04: First Release
+- 2025-03-19: Remove talib

@@ -4,11 +4,11 @@ import os
 from datetime import datetime, timedelta
 from logging import getLogger
 
+import kand
 import numpy as np
 import pandas as pd
 import psutil
 import requests
-import talib
 import xgboost as xgb
 import yfinance as yf
 from dotenv import load_dotenv
@@ -75,13 +75,12 @@ def fetch_yfinance(symbols, start="2020-06-01"):
     symbols_with_usd = [symbol.upper() + "-USD" for symbol in symbols]
     print(" ".join(symbols_with_usd))
     raw_data = yf.download(" ".join(symbols_with_usd), start=start_date.strftime(date_format), threads=True)
-    cols = ["Adj Close", "Close", "High", "Low", "Open", "Volume"]
+    cols = ["Close", "High", "Low", "Open", "Volume"]
     full_data = raw_data[cols].stack().reset_index()
     full_data.columns = [
         "date",
         "ticker",
         "close",
-        "raw_close",
         "high",
         "low",
         "open",
@@ -93,7 +92,7 @@ def fetch_yfinance(symbols, start="2020-06-01"):
 
 
 # # %%
-post_discord(f"Start: {NUMERAI_MODEL_ID}")
+# post_discord(f"Start: {NUMERAI_MODEL_ID}")
 try:
     # %%
     print("Downloading data...")
@@ -116,29 +115,53 @@ try:
 
     # %%
     ticker_groups = full_data.groupby("ticker")
-    # %%
+
+    # 160行未満のグループを除外
+    group_sizes = ticker_groups.size()
+    valid_tickers = group_sizes[group_sizes >= 160].index
+    full_data = full_data[full_data["ticker"].isin(valid_tickers)]
+
+    # グループを再作成
+    ticker_groups = full_data.groupby("ticker")
+
     for period in [20, 40, 60]:
         print(f"Calculating indicators for period: {period}")
         print("RSI")
-        full_data[f"RSI_{period}"] = ticker_groups["close"].transform(lambda x: talib.RSI(x, period))
+        full_data[f"RSI_{period}"] = ticker_groups["close"].transform(
+            lambda x: pd.Series(kand.rsi(np.array(x, dtype=np.float64), period)[0], index=x.index)
+        )
         print("SMA")
-        full_data[f"SMA_{period}"] = ticker_groups["close"].transform(lambda x: talib.SMA(x, period))
+        full_data[f"SMA_{period}"] = ticker_groups["close"].transform(
+            lambda x: pd.Series(kand.sma(np.array(x, dtype=np.float64), period), index=x.index)
+        )
         print("VOLATILITY")
         full_data[f"VOLATILITY_{period}"] = ticker_groups["close"].transform(lambda x: volatility(x, period))
         print("SR")
         full_data[f"SR_{period}"] = ticker_groups["close"].transform(lambda x: sr(x, period))
         print("MOM")
-        full_data[f"MOM_{period}"] = ticker_groups["close"].transform(lambda x: talib.MOM(x, period))
+        full_data[f"MOM_{period}"] = ticker_groups["close"].transform(
+            lambda x: pd.Series(kand.mom(np.array(x, dtype=np.float64), period), index=x.index)
+        )
         print("EMA")
-        full_data[f"EMA_{period}"] = ticker_groups["close"].transform(lambda x: talib.EMA(x, period))
+        full_data[f"EMA_{period}"] = ticker_groups["close"].transform(
+            lambda x: pd.Series(kand.ema(np.array(x, dtype=np.float64), period), index=x.index)
+        )
         print("DEMA")
-        full_data[f"DEMA_{period}"] = ticker_groups["close"].transform(lambda x: talib.DEMA(x, period))
-        print("TEMA")
-        full_data[f"TEMA_{period}"] = ticker_groups["close"].transform(lambda x: talib.TEMA(x, period))
+        full_data[f"DEMA_{period}"] = ticker_groups["close"].transform(
+            lambda x: pd.Series(kand.dema(np.array(x, dtype=np.float64), period)[0], index=x.index)
+        )
+        # print("TEMA")
+        # full_data[f"TEMA_{period}"] = ticker_groups["close"].transform(
+        #     lambda x: pd.Series(kand.tema(np.array(x, dtype=np.float64), period)[0], index=x.index)
+        # )
         print("TRIMA")
-        full_data[f"TRIMA_{period}"] = ticker_groups["close"].transform(lambda x: talib.TRIMA(x, period))
+        full_data[f"TRIMA_{period}"] = ticker_groups["close"].transform(
+            lambda x: pd.Series(kand.trima(np.array(x, dtype=np.float64), period)[0], index=x.index)
+        )
         print("WMA")
-        full_data[f"WMA_{period}"] = ticker_groups["close"].transform(lambda x: talib.WMA(x, period))
+        full_data[f"WMA_{period}"] = ticker_groups["close"].transform(
+            lambda x: pd.Series(kand.wma(np.array(x, dtype=np.float64), period), index=x.index)
+        )
 
         # print("ATR")
         # full_data[f"ATR_{period}"] = ticker_groups[["low", "high", "close"]].apply(
@@ -149,19 +172,21 @@ try:
         #     lambda x: pd.DataFrame({"NATR": talib.NATR(x["high"], x["low"], x["close"], timeperiod=period)})
         # )["NATR"]
 
-    full_data = full_data.drop(columns=["raw_close", "high", "low", "open", "volume"])
+    full_data = full_data.drop(columns=["close", "high", "low", "open", "volume"])
     gc.collect()
     # %%
 
     for f_period, s_period in zip([20, 40, 60], [40, 60, 80]):
         print(f"Calculating indicators for fast period: {f_period}, slow period: {s_period}")
         print("APO")
-        full_data[f"APO_{f_period}_{s_period}"] = ticker_groups["close"].transform(
-            lambda x: talib.APO(x, f_period, s_period)
-        )
+        # full_data[f"APO_{f_period}_{s_period}"] = ticker_groups["close"].transform(
+        #     lambda x: kand.apo(np.array(x, dtype=np.float64), f_period, s_period)
+        # )
         print("MACD")
         full_data[f"MACD_{f_period}_{s_period}"] = ticker_groups["close"].transform(
-            lambda x: talib.MACD(x, f_period, s_period)[0]
+            lambda x: pd.Series(
+                kand.macd(np.array(x, dtype=np.float64), f_period, s_period, signal_period=9)[0], index=x.index
+            )
         )
 
     del ticker_groups
@@ -173,7 +198,6 @@ try:
             "ticker",
             "symbol",
             "close",
-            "raw_close",
             "high",
             "low",
             "open",
@@ -181,7 +205,6 @@ try:
             "target",
         }
     )
-
     full_data = full_data.dropna(subset=indicators)
     date_groups = full_data.groupby(full_data.index)
 
@@ -233,7 +256,7 @@ try:
         "learning_rate": 0.02,
         "max_depth": 5,
         "subsample": 1.0 / 16,
-        "colsample_bytree": (2**5) / len(features),  # features needs to be defined
+        "colsample_bytree": min(0.8, (2**5) / len(features)),
         "eval_metric": "rmse",
         "seed": 46,  # sexy random seed
     }
