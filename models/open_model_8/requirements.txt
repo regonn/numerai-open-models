@@ -1,7 +1,7 @@
 numerapi===2.19.1
 python-dotenv===1.0.1
 pandas===2.2.3
-lightgbm===4.5.0
+lightgbm===4.6.0
 pyarrow===17.0.0
 psutil===6.0.0
 xgboost===2.1.3
