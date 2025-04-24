@@ -1,3 +1,23 @@
+[project]
+name = "numerai-batch"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "cloudpickle==2.2.1",
+    "lightgbm==4.0.0",
+    "matplotlib==3.7.1",
+    "numerapi>=2.20.6",
+    "numpy==1.23.5",
+    "optuna>=4.3.0",
+    "pyarrow==11.0.0",
+    "python-dotenv>=1.1.0",
+    "scikit-learn==1.2.2",
+    "seaborn>=0.13.2",
+    "xgboost>=1.7.5",
+]
+
 [tool.ruff]
 target-version = "py311"
 include = ["*.py"]
@@ -25,3 +45,8 @@ combine-as-imports = true
 known-first-party = ["musubi_restapi"]
 section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
 split-on-trailing-comma = true
+
+[dependency-groups]
+dev = [
+    "ruff>=0.11.6",
+]
