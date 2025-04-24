@@ -8,5 +8,6 @@ kaggle.json
 /v5.0
 /saved_models/*
 *.pkl
+*.log
 /.pt_tmp
 /hyper_liquid_data/*.lz4
