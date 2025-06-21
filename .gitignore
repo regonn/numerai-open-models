@@ -1,5 +1,6 @@
 .env
 build_and_push.ps1
+build_and_push_pkl_tournament.ps1
 build_and_push_signals.ps1
 build_and_push_crypto.ps1
 build_and_push.sh
@@ -11,3 +12,6 @@ kaggle.json
 *.log
 /.pt_tmp
 /hyper_liquid_data/*.lz4
+.jupyter_ystore.db
+.ipynb_checkpoints/*
+.jupyter/*

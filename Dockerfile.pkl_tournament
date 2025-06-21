@@ -1,0 +1,27 @@
+FROM python:3.11-slim
+
+# 必要なビルド依存関係を追加
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements_numerai_predict.txt requirements.txt
+
+RUN pip install --upgrade pip --verbose && \
+    pip install -r requirements.txt --verbose
+
+ARG NUMERAI_MODEL_ID
+RUN if [ -z ${NUMERAI_MODEL_ID} ]; then echo "NUMERAI_MODEL_ID is not set (docker build --build-arg NUMERAI_MODEL_ID=sample_model .)"; exit 1; fi
+ENV NUMERAI_MODEL_ID=$NUMERAI_MODEL_ID
+
+ARG GIT_COMMIT
+ENV GIT_COMMIT_HASH=$GIT_COMMIT
+
+WORKDIR /model
+
+COPY .env .env
+COPY ./models/${NUMERAI_MODEL_ID} /model
+
+CMD ["python", "model.py"]

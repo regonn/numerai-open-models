@@ -1,0 +1,15 @@
+catboost==1.2
+cloudpickle==2.2.1
+google-cloud-batch>=0.17.35
+google-cloud-storage>=3.1.0
+lightgbm==4.0.0
+matplotlib==3.7.1
+numerapi==2.20.6
+numpy==1.23.5
+pandera>=0.24.0
+plotly==5.14.1
+polars==0.18.15
+pyarrow==11.0.0
+python-dotenv>=1.1.0
+scikit-learn==1.2.2
+xgboost==1.7.5
