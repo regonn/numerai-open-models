@@ -1,6 +1,0 @@
-numerapi===2.19.1
-python-dotenv===1.0.0
-pandas===2.2.3
-xgboost===2.1.1
-pyarrow===17.0.0
-psutil===6.0.0
