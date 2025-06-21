@@ -10,3 +10,4 @@
 
 - 2024-02-28: First Release
 - 2024-10-09: data v5.0
+- 2025-06-21: Use [Model Uploads](https://docs.numer.ai/numerai-tournament/submissions/model-uploads)
